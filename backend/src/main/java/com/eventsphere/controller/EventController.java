@@ -3,6 +3,8 @@ package com.eventsphere.controller;
 import com.eventsphere.payload.request.EventRequest;
 import com.eventsphere.payload.response.ApiResponse;
 import com.eventsphere.payload.response.EventResponse;
+import com.eventsphere.payload.response.AnalyticsResponse;
+import com.eventsphere.service.BookingService;
 import com.eventsphere.service.EventService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ import java.util.UUID;
 public class EventController {
 
     private final EventService eventService;
+    private final BookingService bookingService;
 
     @PostMapping
     @PreAuthorize("hasRole('ORGANIZER') or hasRole('SUPER_ADMIN')")
@@ -52,7 +55,15 @@ public class EventController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<EventResponse>> getEventById(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.success(eventService.getEventById(id), "Event fetched successfully"));
+        EventResponse response = eventService.getEventById(id);
+        return ResponseEntity.ok(ApiResponse.success(response, "Event fetched successfully"));
+    }
+
+    @GetMapping("/organizer/analytics")
+    @PreAuthorize("hasRole('ORGANIZER') or hasRole('SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<AnalyticsResponse>> getOrganizerAnalytics(Authentication authentication) {
+        AnalyticsResponse response = bookingService.getOrganizerAnalytics(authentication.getName());
+        return ResponseEntity.ok(ApiResponse.success(response, "Analytics fetched successfully"));
     }
 
     @GetMapping("/organizer")
@@ -63,6 +74,20 @@ public class EventController {
             Authentication authentication) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<EventResponse> events = eventService.getEventsByOrganizer(authentication.getName(), pageable);
-        return ResponseEntity.ok(ApiResponse.success(events, "Organizer events fetched successfully"));
+        return ResponseEntity.ok(ApiResponse.success(events, "Events fetched successfully"));
+    }
+
+    @PostMapping("/{id}/save")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<ApiResponse<Void>> toggleSaveEvent(@PathVariable UUID id, Authentication authentication) {
+        eventService.toggleSaveEvent(id, authentication.getName());
+        return ResponseEntity.ok(ApiResponse.success(null, "Event save status toggled"));
+    }
+
+    @GetMapping("/saved")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<ApiResponse<java.util.List<EventResponse>>> getSavedEvents(Authentication authentication) {
+        java.util.List<EventResponse> events = eventService.getSavedEvents(authentication.getName());
+        return ResponseEntity.ok(ApiResponse.success(events, "Saved events fetched"));
     }
 }

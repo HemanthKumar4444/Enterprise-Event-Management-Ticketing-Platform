@@ -86,4 +86,27 @@ public class EventService {
         return eventRepository.findByOrganizerEmail(email, pageable)
                 .map(EventResponse::fromEntity);
     }
+
+    @Transactional
+    public void toggleSaveEvent(UUID eventId, String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new ResourceNotFoundException("Event", "id", eventId));
+
+        boolean removed = user.getSavedEvents().removeIf(e -> e.getId().equals(eventId));
+        if (!removed) {
+            user.getSavedEvents().add(event);
+        }
+        userRepository.save(user);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<EventResponse> getSavedEvents(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+        return user.getSavedEvents().stream()
+                .map(EventResponse::fromEntity)
+                .collect(Collectors.toList());
+    }
 }

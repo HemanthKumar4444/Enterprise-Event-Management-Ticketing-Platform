@@ -74,4 +74,14 @@ public class BookingService {
         return bookingRepository.findByUserEmail(email, pageable)
                 .map(BookingResponse::fromEntity);
     }
+
+    public com.eventsphere.payload.response.AnalyticsResponse getOrganizerAnalytics(String email) {
+        BigDecimal totalRevenue = bookingRepository.getTotalRevenueByOrganizer(email);
+        Long totalAttendees = bookingRepository.getTotalAttendeesByOrganizer(email);
+        
+        return com.eventsphere.payload.response.AnalyticsResponse.builder()
+                .totalRevenue(totalRevenue != null ? totalRevenue : BigDecimal.ZERO)
+                .totalAttendees(totalAttendees != null ? totalAttendees : 0L)
+                .build();
+    }
 }

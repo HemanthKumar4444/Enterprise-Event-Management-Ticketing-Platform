@@ -5,26 +5,33 @@ import api from '../../api/axios';
 
 export const OrganizerDashboard = () => {
     const [events, setEvents] = useState<any[]>([]);
+    const [analytics, setAnalytics] = useState({ totalRevenue: 0, totalAttendees: 0 });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchEvents = async () => {
+        const fetchData = async () => {
             try {
-                const response = await api.get('/events/organizer');
-                if (response.data.success) {
-                    setEvents(response.data.data.content);
+                const [eventsRes, analyticsRes] = await Promise.all([
+                    api.get('/events/organizer'),
+                    api.get('/events/organizer/analytics')
+                ]);
+                
+                if (eventsRes.data.success) {
+                    setEvents(eventsRes.data.data.content);
+                }
+                if (analyticsRes.data.success) {
+                    setAnalytics(analyticsRes.data.data);
                 }
             } catch (error) {
-                console.error("Error fetching organizer events", error);
+                console.error("Error fetching organizer dashboard data", error);
             } finally {
                 setLoading(false);
             }
         };
-        fetchEvents();
+        fetchData();
     }, []);
 
-    const totalRevenue = 0; // To be implemented in Phase 5
-    const totalAttendees = 0; // To be implemented in Phase 5
+    const { totalRevenue, totalAttendees } = analytics;
 
     return (
         <div className="space-y-8">

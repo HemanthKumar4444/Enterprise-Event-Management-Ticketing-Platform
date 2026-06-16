@@ -11,6 +11,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.UUID;
 
 @Entity
@@ -52,6 +54,15 @@ public class User implements UserDetails {
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "user_saved_events",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "event_id")
+    )
+    @Builder.Default
+    private Set<Event> savedEvents = new HashSet<>();
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;

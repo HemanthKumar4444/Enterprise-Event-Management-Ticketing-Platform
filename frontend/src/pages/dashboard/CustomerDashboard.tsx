@@ -9,20 +9,29 @@ export const CustomerDashboard = () => {
     const [bookings, setBookings] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const [savedEvents, setSavedEvents] = useState<any[]>([]);
+
     useEffect(() => {
-        const fetchBookings = async () => {
+        const fetchDashboardData = async () => {
             try {
-                const response = await api.get('/bookings/my-bookings');
-                if (response.data.success) {
-                    setBookings(response.data.data.content);
+                const [bookingsRes, savedEventsRes] = await Promise.all([
+                    api.get('/bookings/my-bookings'),
+                    api.get('/events/saved')
+                ]);
+                
+                if (bookingsRes.data.success) {
+                    setBookings(bookingsRes.data.data.content);
+                }
+                if (savedEventsRes.data.success) {
+                    setSavedEvents(savedEventsRes.data.data);
                 }
             } catch (error) {
-                console.error("Error fetching bookings", error);
+                console.error("Error fetching dashboard data", error);
             } finally {
                 setLoading(false);
             }
         };
-        fetchBookings();
+        fetchDashboardData();
     }, []);
 
     const totalTickets = bookings.reduce((sum, b) => sum + b.ticketCount, 0);
@@ -59,7 +68,7 @@ export const CustomerDashboard = () => {
                     </div>
                     <div>
                         <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Saved Events</p>
-                        <p className="text-3xl font-extrabold text-gray-900">0</p>
+                        <p className="text-3xl font-extrabold text-gray-900">{savedEvents.length}</p>
                     </div>
                 </div>
             </div>
@@ -107,6 +116,56 @@ export const CustomerDashboard = () => {
                         <Link to="/" className="mt-6 inline-block px-6 py-3 bg-primary text-white font-bold rounded-xl hover:bg-primary-dark transition-colors">
                             Discover Events
                         </Link>
+                    </div>
+                )}
+            </div>
+
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Saved Events</h2>
+                
+                {loading ? (
+                    <div className="animate-pulse space-y-4">
+                        {[1, 2].map(i => <div key={i} className="h-20 bg-gray-100 rounded-xl"></div>)}
+                    </div>
+                ) : savedEvents.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {savedEvents.map(event => (
+                            <Link to={`/events/${event.id}`} key={event.id} className="group border border-gray-200 rounded-2xl overflow-hidden hover:shadow-lg transition-all flex flex-col">
+                                <div className="h-32 bg-gray-200 relative overflow-hidden">
+                                    {event.bannerUrl ? (
+                                        <img src={event.bannerUrl} alt={event.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-primary/10">
+                                            <CalendarClock className="h-10 w-10 text-primary/40" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="p-4 bg-white flex-grow relative">
+                                    <h3 className="font-bold text-gray-900 line-clamp-1 pr-8">{event.name}</h3>
+                                    <p className="text-sm text-gray-500 mt-1">{new Date(event.startDate).toLocaleDateString()}</p>
+                                    <span className="inline-block px-2 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded mt-3">
+                                        {event.category}
+                                    </span>
+                                    <button 
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            api.post(`/events/${event.id}/save`).then(() => {
+                                                setSavedEvents(prev => prev.filter(e => e.id !== event.id));
+                                            });
+                                        }}
+                                        className="absolute top-4 right-4 p-2 bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-full transition-colors"
+                                        title="Unsave event"
+                                    >
+                                        <Ticket className="h-4 w-4 hidden" />
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+                                    </button>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-xl">
+                        <p className="text-gray-500">You haven't saved any events yet.</p>
                     </div>
                 )}
             </div>

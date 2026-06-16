@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '../../api/axios';
-import { Calendar, MapPin, Ticket, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { Calendar, MapPin, Ticket, AlertCircle, CheckCircle2, ArrowLeft, Bookmark } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export const EventDetails = () => {
@@ -18,6 +18,7 @@ export const EventDetails = () => {
     const [bookingLoading, setBookingLoading] = useState(false);
     const [bookingSuccess, setBookingSuccess] = useState(false);
     const [bookingError, setBookingError] = useState('');
+    const [hasBooked, setHasBooked] = useState(false);
 
     useEffect(() => {
         const fetchEvent = async () => {
@@ -37,6 +38,46 @@ export const EventDetails = () => {
         };
         fetchEvent();
     }, [id]);
+
+    const [isSaved, setIsSaved] = useState(false);
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            const checkSavedStatus = async () => {
+                try {
+                    const [savedRes, bookingsRes] = await Promise.all([
+                        api.get('/events/saved'),
+                        api.get('/bookings/my-bookings')
+                    ]);
+                    
+                    if (savedRes.data.success) {
+                        const savedEvents = savedRes.data.data;
+                        if (savedEvents.some((e: any) => e.id === id)) {
+                            setIsSaved(true);
+                        }
+                    }
+                    
+                    if (bookingsRes.data.success) {
+                        const myBookings = bookingsRes.data.data.content;
+                        if (myBookings.some((b: any) => b.eventId === id)) {
+                            setHasBooked(true);
+                        }
+                    }
+                } catch (e) {}
+            };
+            checkSavedStatus();
+        }
+    }, [id, isAuthenticated]);
+
+    const handleToggleSave = async () => {
+        if (!isAuthenticated) return;
+        try {
+            await api.post(`/events/${id}/save`);
+            setIsSaved(!isSaved);
+        } catch (error) {
+            console.error("Error toggling save status");
+        }
+    };
 
     const handleBookTicket = async () => {
         if (!isAuthenticated) {
@@ -107,9 +148,21 @@ export const EventDetails = () => {
                     <div className="flex flex-col md:flex-row gap-12">
                         {/* Event Details */}
                         <div className="flex-1 space-y-8">
-                            <div>
-                                <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight mb-4">{event.name}</h1>
-                                <p className="text-lg text-gray-600 leading-relaxed">{event.description}</p>
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight mb-4">{event.name}</h1>
+                                    <p className="text-lg text-gray-600 leading-relaxed">{event.description}</p>
+                                </div>
+                                {isAuthenticated && (
+                                    <button 
+                                        onClick={handleToggleSave}
+                                        className={`px-4 py-2 rounded-xl border-2 flex items-center gap-2 font-bold transition-all ${isSaved ? 'bg-primary border-primary text-white hover:bg-primary-dark hover:border-primary-dark' : 'bg-white border-gray-200 text-gray-600 hover:border-primary hover:text-primary'}`}
+                                        title={isSaved ? "Remove from saved events" : "Save this event"}
+                                    >
+                                        <Bookmark className={isSaved ? "fill-current" : ""} size={20} />
+                                        {isSaved ? 'Saved Event' : 'Save Event'}
+                                    </button>
+                                )}
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t border-gray-100">
