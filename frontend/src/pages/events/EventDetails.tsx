@@ -18,7 +18,6 @@ export const EventDetails = () => {
     const [bookingLoading, setBookingLoading] = useState(false);
     const [bookingSuccess, setBookingSuccess] = useState(false);
     const [bookingError, setBookingError] = useState('');
-    const [hasBooked, setHasBooked] = useState(false);
 
     useEffect(() => {
         const fetchEvent = async () => {
@@ -45,25 +44,16 @@ export const EventDetails = () => {
         if (isAuthenticated) {
             const checkSavedStatus = async () => {
                 try {
-                    const [savedRes, bookingsRes] = await Promise.all([
-                        api.get('/events/saved'),
-                        api.get('/bookings/my-bookings')
-                    ]);
-                    
+                    const savedRes = await api.get('/events/saved');
                     if (savedRes.data.success) {
                         const savedEvents = savedRes.data.data;
                         if (savedEvents.some((e: any) => e.id === id)) {
                             setIsSaved(true);
                         }
                     }
-                    
-                    if (bookingsRes.data.success) {
-                        const myBookings = bookingsRes.data.data.content;
-                        if (myBookings.some((b: any) => b.eventId === id)) {
-                            setHasBooked(true);
-                        }
-                    }
-                } catch (e) {}
+                } catch (e) {
+                    console.error("Error fetching saved status");
+                }
             };
             checkSavedStatus();
         }

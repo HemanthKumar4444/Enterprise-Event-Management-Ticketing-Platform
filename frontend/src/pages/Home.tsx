@@ -6,22 +6,30 @@ import { Link } from 'react-router-dom';
 export const Home = () => {
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const fetchEvents = async (search = '') => {
+        setLoading(true);
+        try {
+            const endpoint = search ? `/events?search=${encodeURIComponent(search)}` : '/events';
+            const response = await api.get(endpoint);
+            if (response.data.success) {
+                setEvents(response.data.data.content);
+            }
+        } catch (error) {
+            console.error("Error fetching events", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchEvents = async () => {
-            try {
-                const response = await api.get('/events');
-                if (response.data.success) {
-                    setEvents(response.data.data.content);
-                }
-            } catch (error) {
-                console.error("Error fetching events", error);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchEvents();
     }, []);
+
+    const handleSearch = () => {
+        fetchEvents(searchQuery);
+    };
 
     return (
         <div className="space-y-12">
@@ -32,10 +40,20 @@ export const Home = () => {
                     <p className="text-xl text-primary-100">Book tickets for conferences, concerts, workshops, and more.</p>
                     <div className="mt-8 flex justify-center gap-4 flex-col sm:flex-row">
                         <div className="relative w-full max-w-md text-left">
-                            <input type="text" placeholder="Search events..." className="w-full pl-12 pr-4 py-4 rounded-full text-gray-900 shadow-lg focus:outline-none focus:ring-2 focus:ring-white" />
+                            <input 
+                                type="text" 
+                                placeholder="Search events..." 
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                                className="w-full pl-12 pr-4 py-4 rounded-full text-gray-900 shadow-lg focus:outline-none focus:ring-2 focus:ring-white" 
+                            />
                             <Search className="absolute left-4 top-4 text-gray-400" />
                         </div>
-                        <button className="bg-white text-primary font-bold px-8 py-4 rounded-full shadow-lg hover:bg-gray-50 transition-colors">
+                        <button 
+                            onClick={handleSearch}
+                            className="bg-white text-primary font-bold px-8 py-4 rounded-full shadow-lg hover:bg-gray-50 transition-colors"
+                        >
                             Find Events
                         </button>
                     </div>
